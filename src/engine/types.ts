@@ -42,7 +42,7 @@ export interface CockcroftGaultInput {
   weight: number;
   creatinine: number;
   sex: Sex;
-  /** Peso ajustado (v2, opcional — si no se pasa, se usa weight) */
+  /** Peso ajustado (opcional — si no se pasa, se usa weight) */
   adjustedWeight?: number;
 }
 
@@ -51,6 +51,23 @@ export interface CkdEpi2021Input {
   age: number;
   creatinine: number;
   sex: Sex;
+}
+
+/** Inputs para el cálculo unificado de ClCr de dosificación */
+export interface DosingClCrInput {
+  age: number;
+  sex: Sex;
+  weight: number;
+  creatinine: number;
+  height?: number | null;
+}
+
+/** Resultado del cálculo unificado de ClCr de dosificación */
+export interface DosingClCrResult extends CalculationResult<number> {
+  isAdjustedWeightUsed: boolean;
+  ibw: number | null;
+  abw: number | null;
+  weightUsed: number;
 }
 
 /** Modo de dosificación de una droga en goteo */

@@ -62,8 +62,6 @@ export function MedicationSelector({ state, dispatch }: MedicationSelectorProps)
         </p>
         <div className="flex flex-wrap gap-1.5">
           {Array.from(drugGroups.entries()).map(([drugName, group]) => {
-            const isActive = group.ids.some((id) => activeRenalRuleIds.includes(id));
-
             return group.ids.map((ruleId) => {
               const rule = renalRules.find((r) => r.id === ruleId)!;
               const isThisActive = activeRenalRuleIds.includes(ruleId);

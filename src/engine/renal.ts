@@ -1,7 +1,11 @@
 import type {
   CalculationResult,
+  CalculationStep,
   CockcroftGaultInput,
   CkdEpi2021Input,
+  DosingClCrInput,
+  DosingClCrResult,
+  Sex,
 } from './types';
 
 /**
@@ -17,13 +21,13 @@ export function cockcroftGault(input: CockcroftGaultInput): CalculationResult<nu
   const { age, creatinine, sex, adjustedWeight } = input;
   const weight = adjustedWeight ?? input.weight;
 
-  const steps = [];
+  const steps: CalculationStep[] = [];
   const warnings: string[] = [];
 
   // Paso 1: Numerador
   const numerator = (140 - age) * weight;
   steps.push({
-    label: `Numerador: (140 − ${age}) × ${weight} = ${numerator}`,
+    label: `Numerador: (140 − ${age}) × ${weight.toFixed(1)} = ${numerator.toFixed(1)}`,
     value: numerator,
     formula: '(140 − edad) × peso',
   });
@@ -31,7 +35,7 @@ export function cockcroftGault(input: CockcroftGaultInput): CalculationResult<nu
   // Paso 2: Denominador
   const denominator = 72 * creatinine;
   steps.push({
-    label: `Denominador: 72 × ${creatinine} = ${denominator}`,
+    label: `Denominador: 72 × ${creatinine} = ${denominator.toFixed(1)}`,
     value: denominator,
     formula: '72 × CrS',
   });
@@ -39,7 +43,7 @@ export function cockcroftGault(input: CockcroftGaultInput): CalculationResult<nu
   // Paso 3: División
   let result = numerator / denominator;
   steps.push({
-    label: `División: ${numerator} / ${denominator} = ${result.toFixed(2)}`,
+    label: `División: ${numerator.toFixed(1)} / ${denominator.toFixed(1)} = ${result.toFixed(2)}`,
     value: result,
     formula: 'numerador / denominador',
   });
@@ -90,7 +94,7 @@ export function ckdEpi2021(input: CkdEpi2021Input): CalculationResult<number> {
   const alpha = sex === 'female' ? -0.241 : -0.302;
   const sexFactor = sex === 'female' ? 1.012 : 1;
 
-  const steps = [];
+  const steps: CalculationStep[] = [];
   const warnings: string[] = [];
 
   // Paso 1: Scr/κ
@@ -161,7 +165,7 @@ export function devineIdealWeight(
   const base = sex === 'female' ? 45.5 : 50;
   const sexLabel = sex === 'female' ? 'mujer' : 'hombre';
 
-  const steps = [];
+  const steps: CalculationStep[] = [];
 
   const diff = heightCm - 152.4;
   steps.push({
@@ -206,7 +210,7 @@ export function adjustedBodyWeight(
     return null; // No es obeso, no necesita ajuste
   }
 
-  const steps = [];
+  const steps: CalculationStep[] = [];
 
   steps.push({
     label: `Peso real (${actualWeight} kg) > 1,2 × IBW (${threshold.toFixed(1)} kg) → obeso`,
@@ -226,5 +230,69 @@ export function adjustedBodyWeight(
     unit: 'kg',
     steps,
     warnings: ['Usando peso ajustado (ABW) para Cockcroft-Gault por obesidad.'],
+  };
+}
+
+/**
+ * Calcula el ClCr de dosificación unificado para toda la aplicación.
+ *
+ * Si se dispone de la talla y el paciente es obeso (peso real > 1.2 × IBW),
+ * utiliza automáticamente Cockcroft-Gault con Peso Ajustado (ABW).
+ * De lo contrario, utiliza el peso real.
+ *
+ * @param input Datos de dosificación (edad, sexo, peso, creatinina, talla opcional)
+ * @returns Resultado trazable con ClCr de dosificación, indicador de ABW y pasos
+ */
+export function getDosingClCr(input: DosingClCrInput): DosingClCrResult {
+  const { age, sex, weight, creatinine, height } = input;
+  let ibw: number | null = null;
+  let abw: number | null = null;
+  let weightUsed = weight;
+  let isAdjustedWeightUsed = false;
+  const extraSteps: CalculationStep[] = [];
+  const warnings: string[] = [];
+
+  if (height !== null && height !== undefined && height > 100) {
+    const ibwRes = devineIdealWeight(height, sex);
+    ibw = ibwRes.value;
+    extraSteps.push(...ibwRes.steps);
+
+    const abwRes = adjustedBodyWeight(weight, ibw);
+    if (abwRes !== null) {
+      abw = abwRes.value;
+      weightUsed = abw;
+      isAdjustedWeightUsed = true;
+      extraSteps.push(...abwRes.steps);
+      warnings.push(...abwRes.warnings);
+    } else {
+      extraSteps.push({
+        label: `Peso real (${weight} kg) ≤ 1,2 × IBW (${(ibw * 1.2).toFixed(1)} kg) → se usa peso real (${weight} kg) para dosificación`,
+        value: weight,
+      });
+    }
+  } else {
+    extraSteps.push({
+      label: `Sin talla registrada → se usa peso real (${weight} kg) para dosificación`,
+      value: weight,
+    });
+  }
+
+  const cg = cockcroftGault({
+    age,
+    creatinine,
+    sex,
+    weight,
+    adjustedWeight: isAdjustedWeightUsed ? weightUsed : undefined,
+  });
+
+  return {
+    value: cg.value,
+    unit: 'mL/min',
+    steps: [...extraSteps, ...cg.steps],
+    warnings: [...warnings, ...cg.warnings],
+    isAdjustedWeightUsed,
+    ibw,
+    abw,
+    weightUsed,
   };
 }

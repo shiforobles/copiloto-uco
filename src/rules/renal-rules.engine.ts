@@ -1,37 +1,36 @@
-import type { RenalRule, RenalRuleResult, RenalAdjustment } from './types';
+import type {
+  RenalRule,
+  RenalRuleResult,
+  RenalAdjustment,
+  PatientClinicalContext,
+} from './types';
 
 /**
- * Evalúa las reglas de ajuste renal para una droga dado un ClCr.
+ * Evalúa las reglas de ajuste renal para una droga dado un ClCr y contexto del paciente.
  *
- * Algoritmo (corregido — seguridad):
- * 1. Filtra los ajustes cuyo clcrMax >= ClCr del paciente
- *    (es decir, umbrales que el paciente cruza por debajo)
- * 2. Entre los que aplican, elige el de MENOR clcrMax
- *    (el umbral más restrictivo que el paciente todavía cruza)
- * 3. Si ningún ajuste tiene clcrMax >= ClCr, devuelve dosis normal
- *
- * Ejemplo con enoxaparina anticoagulación (ajustes clcrMax:30 y clcrMax:15):
- * - ClCr 26 → aplica solo el de 30 → "1 mg/kg c/24 h"
- * - ClCr 10 → aplican 30 y 15, gana el de 15 → "evitar / considerar HNF"
- * - ClCr 50 → ninguno aplica → dosis normal
- *
- * IMPORTANTE: El ClCr debe ser el valor sin redondear (no el string de display)
- * para evitar que un redondeo de UI cambie el bin.
+ * Algoritmo:
+ * 1. Evalúa criterios multi-factoriales (ej: Apixabán en FA: ≥ 2 de 3 entre edad ≥ 80, peso ≤ 60, Cr ≥ 1.5).
+ * 2. Filtra ajustes por ClCr que aplican: ClCr <= clcrMax.
+ * 3. Si hay un ajuste por ClCr (ej: ClCr <= 15 contraindicado), este prevalece como el más restrictivo.
+ * 4. Si no hay ajuste por ClCr pero sí aplica reducción multi-factorial, aplica la dosis reducida.
+ * 5. Si nada aplica, devuelve dosis normal.
  *
  * @param ruleId ID de la regla a evaluar
  * @param clcr Clearance de creatinina en mL/min (valor sin redondear)
  * @param rules Array de reglas disponibles
+ * @param context Contexto opcional del paciente (edad, peso, creatinina)
  * @returns Resultado con la regla, el ajuste aplicado y la dosis sugerida, o null si no hay regla
  */
 export function evaluateRenalRule(
   ruleId: string,
   clcr: number,
-  rules: RenalRule[]
+  rules: RenalRule[],
+  context?: PatientClinicalContext
 ): RenalRuleResult | null {
   const rule = rules.find((r) => r.id === ruleId);
   if (!rule) return null;
 
-  return evaluateRenalRuleForRule(rule, clcr);
+  return evaluateRenalRuleForRule(rule, clcr, context);
 }
 
 /**
@@ -39,32 +38,90 @@ export function evaluateRenalRule(
  */
 export function evaluateRenalRuleForRule(
   rule: RenalRule,
-  clcr: number
+  clcr: number,
+  context?: PatientClinicalContext
 ): RenalRuleResult {
-  // Filtrar ajustes que aplican: clcrMax >= ClCr del paciente
+  // 1. Evaluar criterios multi-factoriales (ej: Apixabán FA)
+  let criteriaApplied: {
+    metCriteriaCount: number;
+    requiredCount: number;
+    details: string[];
+  } | null = null;
+  let criteriaDose: string | null = null;
+
+  if (rule.criteriaReduction && context) {
+    const { minAge, maxWeight, minCreatinine, minCriteriaCount, dosisAjustada } = rule.criteriaReduction;
+    const details: string[] = [];
+    let metCount = 0;
+
+    if (minAge !== undefined && context.age !== null && context.age !== undefined) {
+      if (context.age >= minAge) {
+        metCount++;
+        details.push(`Edad ≥ ${minAge} (${context.age} años)`);
+      }
+    }
+    if (maxWeight !== undefined && context.weight !== null && context.weight !== undefined) {
+      if (context.weight <= maxWeight) {
+        metCount++;
+        details.push(`Peso ≤ ${maxWeight} kg (${context.weight} kg)`);
+      }
+    }
+    if (minCreatinine !== undefined && context.creatinine !== null && context.creatinine !== undefined) {
+      if (context.creatinine >= minCreatinine) {
+        metCount++;
+        details.push(`Cr sérica ≥ ${minCreatinine} mg/dL (${context.creatinine} mg/dL)`);
+      }
+    }
+
+    if (metCount >= minCriteriaCount) {
+      criteriaApplied = {
+        metCriteriaCount: metCount,
+        requiredCount: minCriteriaCount,
+        details,
+      };
+      criteriaDose = dosisAjustada;
+    }
+  }
+
+  // 2. Filtrar ajustes renales por ClCr que aplican: ClCr <= clcrMax
   const applicableAdjustments = rule.ajustes.filter(
     (adj) => clcr <= adj.clcrMax
   );
 
-  if (applicableAdjustments.length === 0) {
-    // Ningún ajuste aplica → dosis normal
+  let mostRestrictiveAdjustment: RenalAdjustment | null = null;
+  if (applicableAdjustments.length > 0) {
+    mostRestrictiveAdjustment = applicableAdjustments.reduce<RenalAdjustment>(
+      (best, current) => (current.clcrMax < best.clcrMax ? current : best),
+      applicableAdjustments[0]
+    );
+  }
+
+  // Si hay ajuste renal por ClCr (ej: contraindicado por ClCr < 15), prevalece
+  if (mostRestrictiveAdjustment !== null) {
     return {
       rule,
-      appliedAdjustment: null,
-      suggestedDose: rule.dosisNormal,
+      appliedAdjustment: mostRestrictiveAdjustment,
+      appliedCriteriaReduction: criteriaApplied,
+      suggestedDose: mostRestrictiveAdjustment.dosis,
     };
   }
 
-  // Entre los que aplican, elegir el de MENOR clcrMax (más restrictivo)
-  const mostRestrictive = applicableAdjustments.reduce<RenalAdjustment>(
-    (best, current) => (current.clcrMax < best.clcrMax ? current : best),
-    applicableAdjustments[0]
-  );
+  // Si no hay ajuste por ClCr pero sí aplica reducción por criterios (ej: 2 de 3 en Apixabán)
+  if (criteriaDose !== null) {
+    return {
+      rule,
+      appliedAdjustment: null,
+      appliedCriteriaReduction: criteriaApplied,
+      suggestedDose: criteriaDose,
+    };
+  }
 
+  // Dosis normal
   return {
     rule,
-    appliedAdjustment: mostRestrictive,
-    suggestedDose: mostRestrictive.dosis,
+    appliedAdjustment: null,
+    appliedCriteriaReduction: null,
+    suggestedDose: rule.dosisNormal,
   };
 }
 
@@ -74,18 +131,23 @@ export function evaluateRenalRuleForRule(
  * @param drugRuleIds IDs de las reglas a evaluar
  * @param clcr ClCr sin redondear
  * @param rules Todas las reglas disponibles
- * @returns Array de resultados (solo incluye drogas con ajuste activo)
+ * @param context Contexto opcional del paciente
+ * @returns Array de resultados (incluye drogas con ajuste renal o reducción por criterios)
  */
 export function evaluateAllRenalRules(
   drugRuleIds: string[],
   clcr: number,
-  rules: RenalRule[]
+  rules: RenalRule[],
+  context?: PatientClinicalContext
 ): RenalRuleResult[] {
   const results: RenalRuleResult[] = [];
 
   for (const ruleId of drugRuleIds) {
-    const result = evaluateRenalRule(ruleId, clcr, rules);
-    if (result && result.appliedAdjustment !== null) {
+    const result = evaluateRenalRule(ruleId, clcr, rules, context);
+    if (
+      result &&
+      (result.appliedAdjustment !== null || result.appliedCriteriaReduction !== null)
+    ) {
       results.push(result);
     }
   }

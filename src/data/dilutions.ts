@@ -59,7 +59,7 @@ export const dilutions: Dilution[] = [
     concentracionUgMl: 200, // 50 mg = 50000 µg / 250 mL = 200 µg/mL
     modoDosis: 'ug_min',
     rango: { min: 5, max: 200, unidad: 'µg/min' },
-    notas: 'Titular según TA y sintomas. Contraindicada con PDE5i.',
+    notas: 'Titular según TA y síntomas. Contraindicada con PDE5i.',
     verified: false,
   },
   {
@@ -77,12 +77,12 @@ export const dilutions: Dilution[] = [
     id: 'vasopresina',
     nombre: 'Vasopresina',
     presentacion: 'ampolla 20 U/1 mL',
-    dilucionEstandar: { mg: 0, volumenML: 100 },
-    concentracionUgMl: 0, // No aplica — se usa concentracionUPerMl
+    dilucionEstandar: { units: 40, volumenML: 100 },
+    concentracionUgMl: 0,
     concentracionUPerMl: 0.4, // 40 U / 100 mL = 0.4 U/mL
     modoDosis: 'u_min',
     rango: { min: 0.01, max: 0.04, unidad: 'U/min' },
-    notas: 'No titular por TA. Dosis fija habitual: 0.03 U/min. Asociar a noradrenalina.',
+    notas: 'No titular por TA. Dosis fija habitual: 0.03 U/min (4.5 mL/h a 0.4 U/mL). Asociar a noradrenalina.',
     verified: false,
   },
   {

@@ -9,7 +9,8 @@ export interface ActiveDrip {
   nombre: string;
   /** Dilución actual (puede ser editada respecto a la estándar) */
   currentDilution: {
-    mg: number;
+    mg?: number;
+    units?: number;
     volumenML: number;
     concentracionUgMl: number;
     /** Concentración en U/mL para drogas en U/min (vasopresina) */
@@ -18,7 +19,7 @@ export interface ActiveDrip {
   modoDosis: Dilution['modoDosis'];
   rango: Dilution['rango'];
   notas: string;
-  /** Input del usuario: mL/h o gamma, según qué ingresó */
+  /** Input del usuario: mL/h o gamma/dosis, según qué ingresó */
   inputMode: 'mlh' | 'gamma';
   mlPerHour: number | null;
   gamma: number | null;

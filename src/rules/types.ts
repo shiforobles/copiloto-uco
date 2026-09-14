@@ -18,7 +18,8 @@ export interface Dilution {
   nombre: string;
   presentacion: string;
   dilucionEstandar: {
-    mg: number;
+    mg?: number;
+    units?: number;
     volumenML: number;
   };
   /** Concentración resultante de la dilución estándar en µg/mL */
@@ -43,6 +44,16 @@ export interface RenalAdjustment {
   dosis: string;
 }
 
+/** Criterios multi-factoriales de reducción de dosis (ej: Apixabán en FA) */
+export interface DoseReductionCriteria {
+  dosisAjustada: string;
+  minCriteriaCount: number;
+  minAge?: number;
+  maxWeight?: number;
+  minCreatinine?: number;
+  descripcion: string;
+}
+
 /** Regla de ajuste renal para una droga */
 export interface RenalRule {
   id: string;
@@ -51,9 +62,19 @@ export interface RenalRule {
   dosisNormal: string;
   /** Ajustes ordenados por clcrMax descendente (del menos al más restrictivo) */
   ajustes: RenalAdjustment[];
+  /** Criterios multi-factoriales de reducción (opcional) */
+  criteriaReduction?: DoseReductionCriteria;
   source: string;
   lastReviewed: string;
   verified: boolean;
+}
+
+/** Contexto clínico del paciente para evaluación de reglas */
+export interface PatientClinicalContext {
+  age?: number | null;
+  weight?: number | null;
+  creatinine?: number | null;
+  hasAF?: boolean;
 }
 
 /** Precauciones clínicas para un pilar de IC */
@@ -70,7 +91,7 @@ export interface ChecklistPrecautions {
   fcMin?: number;
 }
 
-/** Item del checklist de insuficiencia cardíaca */
+/** Item del checklist de insuficiencia cardíaca o SCA */
 export interface ChecklistItem {
   id: string;
   pilar: string;
@@ -99,6 +120,12 @@ export interface RenalRuleResult {
   rule: RenalRule;
   /** El ajuste que aplica, o null si se usa dosis normal */
   appliedAdjustment: RenalAdjustment | null;
+  /** Criterio multi-factorial aplicado (si corresponde) */
+  appliedCriteriaReduction?: {
+    metCriteriaCount: number;
+    requiredCount: number;
+    details: string[];
+  } | null;
   /** Dosis sugerida (ajustada o normal) */
   suggestedDose: string;
 }

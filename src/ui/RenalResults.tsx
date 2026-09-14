@@ -1,5 +1,5 @@
 import type { SessionState } from '../context/session';
-import { cockcroftGault, ckdEpi2021, devineIdealWeight, adjustedBodyWeight } from '../engine/renal';
+import { ckdEpi2021, getDosingClCr } from '../engine/renal';
 import { validateAge, validateWeight, validateCreatinine } from '../engine/validation';
 import { formatNumber } from '../engine/units';
 import { FormulaDetail } from './FormulaDetail';
@@ -45,30 +45,13 @@ export function RenalResults({ state }: RenalResultsProps) {
     );
   }
 
-  const cgResult = canCalculateCG
-    ? cockcroftGault({ age: age!, weight: weight!, creatinine: creatinine!, sex: sex! })
+  const dosingResult = canCalculateCG
+    ? getDosingClCr({ age: age!, sex: sex!, weight: weight!, creatinine: creatinine!, height })
     : null;
 
   const epiResult = canCalculateEPI
     ? ckdEpi2021({ age: age!, creatinine: creatinine!, sex: sex! })
     : null;
-
-  // Calculate IBW/ABW if height is available
-  let ibwResult = null;
-  let abwResult = null;
-  let cgWithAbw = null;
-
-  if (canCalculateCG && height !== null && height > 100 && sex !== null) {
-    ibwResult = devineIdealWeight(height, sex);
-    abwResult = adjustedBodyWeight(weight!, ibwResult.value);
-
-    if (abwResult) {
-      cgWithAbw = cockcroftGault({
-        age: age!, weight: weight!, creatinine: creatinine!, sex: sex!,
-        adjustedWeight: abwResult.value,
-      });
-    }
-  }
 
   return (
     <section id="section-renal" className="space-y-3">
@@ -80,81 +63,71 @@ export function RenalResults({ state }: RenalResultsProps) {
       </h2>
 
       <div className="grid grid-cols-1 gap-3">
-        {/* Cockcroft-Gault */}
-        {cgResult && (
-          <div className="card">
-            <div className="flex items-baseline justify-between">
+        {/* Cockcroft-Gault (ClCr de dosificación) */}
+        {dosingResult && (
+          <div className="card border-sky-500/20 bg-gradient-to-b from-slate-900/90 to-slate-900/60">
+            <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Cockcroft-Gault</p>
-                <div className="mt-1 flex items-baseline gap-1">
-                  <span className={`result-value ${getClcrColor(cgResult.value)}`}>
-                    {formatNumber(cgResult.value, 1)}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-semibold text-sky-400 uppercase tracking-wider">
+                    Cockcroft-Gault
+                  </p>
+                  <span className="badge-info text-[10px] px-1.5 py-0.5">
+                    ClCr de Dosificación Oficial
+                  </span>
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className={`result-value ${getClcrColor(dosingResult.value)}`}>
+                    {formatNumber(dosingResult.value, 1)}
                   </span>
                   <span className="result-unit">mL/min</span>
                 </div>
               </div>
-              <span className={`badge ${getClcrBadge(cgResult.value)}`}>
-                {getClcrLabel(cgResult.value)}
+              <span className={`badge shrink-0 ${getClcrBadge(dosingResult.value)}`}>
+                {getClcrLabel(dosingResult.value)}
               </span>
             </div>
 
-            {/* IBW/ABW section */}
-            {ibwResult && (
-              <div className="mt-3 p-2.5 bg-slate-900/60 rounded-xl">
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-slate-500">IBW (Devine):</span>
-                  <span className="text-slate-300 font-medium">{formatNumber(ibwResult.value, 1)} kg</span>
-                </div>
-                {abwResult && cgWithAbw && (
-                  <>
-                    <div className="flex items-center gap-3 text-xs mt-1">
-                      <span className="text-slate-500">Peso ajustado:</span>
-                      <span className="text-amber-400 font-medium">{formatNumber(abwResult.value, 1)} kg</span>
-                      <span className="text-slate-600">(obeso: peso {'>'} 1,2 × IBW)</span>
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-slate-700/30">
-                      <div className="flex items-baseline justify-between">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xs text-amber-400/80">CG con ABW:</span>
-                          <span className={`text-lg font-bold ${getClcrColor(cgWithAbw.value)}`}>
-                            {formatNumber(cgWithAbw.value, 1)}
-                          </span>
-                          <span className="text-xs text-slate-500">mL/min</span>
-                        </div>
-                        <span className={`badge ${getClcrBadge(cgWithAbw.value)}`}>
-                          {getClcrLabel(cgWithAbw.value)}
-                        </span>
-                      </div>
-                    </div>
-                    <FormulaDetail title="Ver pasos IBW/ABW">
-                      <StepDisplay steps={[...ibwResult.steps, ...abwResult.steps, ...cgWithAbw.steps]} />
-                    </FormulaDetail>
-                  </>
-                )}
-                {!abwResult && (
-                  <p className="text-xs text-slate-600 mt-1">
-                    Peso normal (≤ 1,2 × IBW) — no requiere ajuste.
-                  </p>
-                )}
+            {/* Contexto de peso utilizado */}
+            <div className="mt-3 p-2.5 bg-slate-950/60 border border-slate-800/60 rounded-xl space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Peso para dosificar:</span>
+                <span className={`font-medium ${dosingResult.isAdjustedWeightUsed ? 'text-amber-400' : 'text-slate-300'}`}>
+                  {formatNumber(dosingResult.weightUsed, 1)} kg
+                  {dosingResult.isAdjustedWeightUsed ? ' (ABW ajustado)' : ' (Peso real)'}
+                </span>
               </div>
-            )}
+
+              {dosingResult.ibw !== null && (
+                <div className="flex items-center justify-between text-slate-500">
+                  <span>Peso ideal (Devine):</span>
+                  <span className="text-slate-400">{formatNumber(dosingResult.ibw, 1)} kg</span>
+                </div>
+              )}
+
+              {dosingResult.isAdjustedWeightUsed && (
+                <p className="text-[11px] text-amber-400/90 pt-1 border-t border-slate-800/40">
+                  ⚖️ Paciente obeso (peso real &gt; 1,2 × IBW). Se aplica peso ajustado para evitar sobredosificación.
+                </p>
+              )}
+            </div>
 
             {/* Warnings */}
-            {cgResult.warnings.map((w, i) => (
+            {dosingResult.warnings.map((w, i) => (
               <div key={i} className="mt-2 p-2 bg-amber-950/30 border border-amber-700/30 rounded-lg">
                 <p className="text-xs text-amber-400">⚠️ {w}</p>
               </div>
             ))}
 
-            <p className="mt-2 text-xs text-sky-400/70">
-              📌 Para ajuste de dosis de drogas, usar este valor (Cockcroft-Gault).
+            <p className="mt-2 text-xs text-sky-400/80">
+              📌 Este valor gobierna automáticamente las alertas de ajuste y precauciones.
             </p>
 
-            <FormulaDetail title="Ver fórmula y pasos">
-              <p className="font-mono text-slate-500 mb-2">
+            <FormulaDetail title="Ver fórmula y pasos completos">
+              <p className="font-mono text-slate-500 mb-2 text-xs">
                 ClCr = ((140 − edad) × peso) / (72 × CrS){sex === 'female' ? ' × 0,85' : ''}
               </p>
-              <StepDisplay steps={cgResult.steps} />
+              <StepDisplay steps={dosingResult.steps} />
             </FormulaDetail>
           </div>
         )}
@@ -164,7 +137,9 @@ export function RenalResults({ state }: RenalResultsProps) {
           <div className="card">
             <div className="flex items-baseline justify-between">
               <div>
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">CKD-EPI 2021 <span className="text-slate-600">(sin raza)</span></p>
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  CKD-EPI 2021 <span className="text-slate-600">(sin raza)</span>
+                </p>
                 <div className="mt-1 flex items-baseline gap-1">
                   <span className={`result-value ${getClcrColor(epiResult.value)}`}>
                     {formatNumber(epiResult.value, 0)}

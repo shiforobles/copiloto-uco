@@ -1,10 +1,9 @@
 import type { RenalRule } from '../rules/types';
 
 /**
- * Reglas de ajuste renal por droga (seeds).
+ * Reglas de ajuste renal y dosificación clínica por droga (seeds).
  *
- * TODOS LOS VALORES SON PLACEHOLDERS (verified: false).
- * El médico debe verificar cada regla contra guías clínicas vigentes.
+ * TODOS LOS VALORES CON verified: false SON BORRADORES QUE DEBEN SER REVISADOS POR EL MÉDICO.
  *
  * Los ajustes están ordenados por clcrMax DESCENDENTE dentro de cada regla.
  * El evaluador selecciona el ajuste con el MENOR clcrMax que sea >= ClCr del paciente.
@@ -18,7 +17,7 @@ export const renalRules: RenalRule[] = [
     ajustes: [
       { clcrMax: 30, dosis: '20 mg/día SC' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha técnica Sanofi / Guía ACCP',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -31,20 +30,39 @@ export const renalRules: RenalRule[] = [
       { clcrMax: 30, dosis: '1 mg/kg c/24 h' },
       { clcrMax: 15, dosis: 'evitar / considerar HNF' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha técnica Sanofi / Guía ESC',
     lastReviewed: '2026-08',
     verified: false,
   },
   {
-    id: 'apixaban',
+    id: 'apixaban-fa',
     droga: 'Apixabán',
-    indicacion: 'anticoagulación FA / TEV',
+    indicacion: 'anticoagulación FA no valvular',
     dosisNormal: '5 mg c/12 h',
+    criteriaReduction: {
+      minCriteriaCount: 2,
+      minAge: 80,
+      maxWeight: 60,
+      minCreatinine: 1.5,
+      dosisAjustada: '2,5 mg c/12 h',
+      descripcion: 'Cumple ≥ 2 de 3 criterios ABC: edad ≥ 80 años, peso ≤ 60 kg, creatinina sérica ≥ 1,5 mg/dL',
+    },
     ajustes: [
-      { clcrMax: 25, dosis: '2,5 mg c/12 h (evaluar riesgo/beneficio)' },
-      { clcrMax: 15, dosis: 'no recomendado (datos limitados)' },
+      { clcrMax: 15, dosis: 'no recomendado / contraindicado (datos limitados)' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha FDA Eliquis 2026 / Guía ESC FA 2024',
+    lastReviewed: '2026-08',
+    verified: false,
+  },
+  {
+    id: 'apixaban-tev',
+    droga: 'Apixabán',
+    indicacion: 'Tratamiento TVP / TEP',
+    dosisNormal: '10 mg c/12 h (días 1–7), luego 5 mg c/12 h',
+    ajustes: [
+      { clcrMax: 15, dosis: 'no recomendado (datos clínicos limitados)' },
+    ],
+    source: 'Ficha FDA Eliquis 2026 / Guía ESC TEP',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -57,7 +75,7 @@ export const renalRules: RenalRule[] = [
       { clcrMax: 50, dosis: '15 mg/día con comida' },
       { clcrMax: 15, dosis: 'no recomendado' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha técnica Bayer / Guía ESC FA',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -67,10 +85,10 @@ export const renalRules: RenalRule[] = [
     indicacion: 'anticoagulación FA',
     dosisNormal: '150 mg c/12 h',
     ajustes: [
-      { clcrMax: 50, dosis: '110 mg c/12 h (evaluar)' },
+      { clcrMax: 50, dosis: '110 mg c/12 h (evaluar riesgo hemorrágico)' },
       { clcrMax: 30, dosis: 'contraindicado' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha técnica Boehringer / Guía ESC FA',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -81,9 +99,9 @@ export const renalRules: RenalRule[] = [
     dosisNormal: '0,25 mg/día',
     ajustes: [
       { clcrMax: 50, dosis: '0,125 mg/día' },
-      { clcrMax: 30, dosis: '0,125 mg c/48 h o suspender' },
+      { clcrMax: 30, dosis: '0,125 mg c/48 h o suspender (monitorear digoxinemia)' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Guía ESC IC 2021 / 2023 Update',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -93,9 +111,9 @@ export const renalRules: RenalRule[] = [
     indicacion: 'IC (antagonista mineralocorticoide)',
     dosisNormal: '25–50 mg/día',
     ajustes: [
-      { clcrMax: 30, dosis: 'reducir a 12,5–25 mg/día o evitar si K > 5' },
+      { clcrMax: 30, dosis: 'reducir a 12,5–25 mg/día o evitar si K > 5,0 mEq/L' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Guía ESC IC 2021',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -106,9 +124,9 @@ export const renalRules: RenalRule[] = [
     dosisNormal: '500–2000 mg/día',
     ajustes: [
       { clcrMax: 45, dosis: 'reducir dosis máxima a 1000 mg/día' },
-      { clcrMax: 30, dosis: 'contraindicada' },
+      { clcrMax: 30, dosis: 'contraindicada (riesgo acidosis láctica)' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Guía ADA / KDIGO 2023',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -120,7 +138,7 @@ export const renalRules: RenalRule[] = [
     ajustes: [
       { clcrMax: 25, dosis: 'no iniciar (puede continuar si ya la recibe)' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha AstraZeneca / Guía ESC IC 2023',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -132,7 +150,7 @@ export const renalRules: RenalRule[] = [
     ajustes: [
       { clcrMax: 20, dosis: 'no iniciar (puede continuar si ya la recibe)' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha Boehringer / Guía ESC IC 2023',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -144,7 +162,7 @@ export const renalRules: RenalRule[] = [
     ajustes: [
       { clcrMax: 30, dosis: 'iniciar con 24/26 mg c/12 h, titular con precaución' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha Novartis / Guía ESC IC 2021',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -157,7 +175,7 @@ export const renalRules: RenalRule[] = [
       { clcrMax: 35, dosis: '50 mg/día máximo' },
       { clcrMax: 15, dosis: '25 mg/día o c/48 h' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha técnica Atenolol',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -168,9 +186,9 @@ export const renalRules: RenalRule[] = [
     dosisNormal: '80 mg c/12 h',
     ajustes: [
       { clcrMax: 60, dosis: '80 mg c/24 h' },
-      { clcrMax: 40, dosis: 'contraindicado (riesgo de QT prolongado)' },
+      { clcrMax: 40, dosis: 'contraindicado (riesgo de QT prolongado y TdP)' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Ficha FDA Sotalol',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -180,7 +198,7 @@ export const renalRules: RenalRule[] = [
     indicacion: 'arritmias ventriculares / FA',
     dosisNormal: '200 mg/día (mantenimiento)',
     ajustes: [],
-    source: 'guía + año (completar)',
+    source: 'Ficha Sanofi Amiodarona',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -193,7 +211,7 @@ export const renalRules: RenalRule[] = [
       { clcrMax: 30, dosis: '0,25 mg/día' },
       { clcrMax: 10, dosis: 'contraindicada' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Guía ESC Pericarditis 2015 / FDA',
     lastReviewed: '2026-08',
     verified: false,
   },
@@ -206,7 +224,7 @@ export const renalRules: RenalRule[] = [
       { clcrMax: 60, dosis: '200 mg/día' },
       { clcrMax: 30, dosis: '100 mg/día' },
     ],
-    source: 'guía + año (completar)',
+    source: 'Guía ACR Gota 2020 / FDA',
     lastReviewed: '2026-08',
     verified: false,
   },
