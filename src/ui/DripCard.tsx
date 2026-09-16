@@ -6,6 +6,7 @@ import { FormulaDetail } from './FormulaDetail';
 import { StepDisplay } from './StepDisplay';
 import { getDilutionById } from '../data/dilutions';
 import type { CalculationResult } from '../engine/types';
+import { validateWeight } from '../engine/validation';
 
 interface DripCardProps {
   drip: ActiveDrip;
@@ -27,14 +28,15 @@ export function DripCard({ drip, weightKg, dispatch, onUpdateDilution }: DripCar
   const [editAmount, setEditAmount] = useState(initialAmount);
   const [editVol, setEditVol] = useState(drip.currentDilution.volumenML.toString());
 
-  const hasWeight = weightKg !== null && weightKg > 0;
-  const canCalculate = isWeightBased ? hasWeight : true;
+  const hasWeight = weightKg !== null && validateWeight(weightKg).valid;
+  const concentration = isUnitsBased ? drip.currentDilution.concentracionUPerMl : drip.currentDilution.concentracionUgMl;
+  const canCalculate = drip.dilutionConfirmed && (isWeightBased ? hasWeight : true) && concentration !== undefined && Number.isFinite(concentration) && concentration > 0;
 
   // Calculate result based on input mode
   let result: CalculationResult<number> | null = null;
 
   if (canCalculate) {
-    if (drip.inputMode === 'mlh' && drip.mlPerHour !== null && drip.mlPerHour >= 0) {
+    if (drip.inputMode === 'mlh' && drip.mlPerHour !== null && Number.isFinite(drip.mlPerHour) && drip.mlPerHour >= 0) {
       if (isWeightBased) {
         result = mlhToGamma({
           mlPerHour: drip.mlPerHour,
@@ -52,7 +54,7 @@ export function DripCard({ drip, weightKg, dispatch, onUpdateDilution }: DripCar
           concentrationUgMl: drip.currentDilution.concentracionUgMl,
         });
       }
-    } else if (drip.inputMode === 'gamma' && drip.gamma !== null && drip.gamma >= 0) {
+    } else if (drip.inputMode === 'gamma' && drip.gamma !== null && Number.isFinite(drip.gamma) && drip.gamma >= 0) {
       if (isWeightBased) {
         result = gammaToMlh({
           gamma: drip.gamma,
@@ -75,7 +77,7 @@ export function DripCard({ drip, weightKg, dispatch, onUpdateDilution }: DripCar
 
   const handleInputChange = (mode: 'mlh' | 'gamma', raw: string) => {
     const value = raw === '' ? null : parseFloat(raw);
-    if (raw !== '' && isNaN(value!)) return;
+    if (raw !== '' && !Number.isFinite(value)) return;
 
     dispatch({
       type: 'UPDATE_DRIP',
@@ -91,14 +93,15 @@ export function DripCard({ drip, weightKg, dispatch, onUpdateDilution }: DripCar
   const handleSaveDilution = () => {
     const amount = parseFloat(editAmount);
     const vol = parseFloat(editVol);
-    if (!isNaN(amount) && !isNaN(vol) && amount > 0 && vol > 0) {
+    if (Number.isFinite(amount) && Number.isFinite(vol) && amount > 0 && vol > 0) {
       onUpdateDilution(drip.id, amount, vol, isUnitsBased);
       setShowDilutionEdit(false);
     }
   };
 
   // Check if value is within therapeutic range
-  const currentDoseValue = drip.inputMode === 'mlh' && result ? result.value : drip.gamma;
+  if (result && !Number.isFinite(result.value)) result = null;
+  const currentDoseValue = result ? (drip.inputMode === 'mlh' ? result.value : drip.gamma) : null;
   const isInRange = currentDoseValue !== null && currentDoseValue !== undefined && currentDoseValue > 0
     ? currentDoseValue >= drip.rango.min && currentDoseValue <= drip.rango.max
     : null;
@@ -172,7 +175,7 @@ export function DripCard({ drip, weightKg, dispatch, onUpdateDilution }: DripCar
               />
             </div>
             <div>
-              <label className="text-xs text-slate-500">Volumen solución (mL)</label>
+              <label className="text-xs text-slate-500">Volumen final total (mL)</label>
               <input
                 type="number"
                 inputMode="decimal"
@@ -194,6 +197,11 @@ export function DripCard({ drip, weightKg, dispatch, onUpdateDilution }: DripCar
         </div>
       )}
 
+      <label className="mt-3 flex gap-2 text-xs text-amber-200 items-start">
+        <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0" checked={drip.dilutionConfirmed} onChange={e => dispatch({ type: 'UPDATE_DRIP', id: drip.id, updates: { dilutionConfirmed: e.target.checked } })} />
+        Confirmé cantidad de principio activo, unidad y volumen final de esta preparación.
+      </label>
+      {!drip.dilutionConfirmed && <p className="mt-2 text-xs text-slate-400">Preparación de ejemplo: confirmar o editar antes de calcular. No valida compatibilidad ni dosis.</p>}
       {/* Interactive Bidirectional Inputs */}
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
@@ -261,10 +269,10 @@ export function DripCard({ drip, weightKg, dispatch, onUpdateDilution }: DripCar
       {currentDoseValue !== null && currentDoseValue !== undefined && currentDoseValue > 0 && (
         <div className="mt-2 flex items-center justify-between text-xs pt-2 border-t border-slate-800/40">
           <span className={isInRange ? 'text-emerald-400 font-medium' : 'text-amber-400 font-medium'}>
-            {isInRange ? '✓ En rango terapéutico' : '⚠️ Fuera de rango habitual'}
+            {isInRange ? 'Dentro del intervalo de referencia' : 'Fuera del intervalo de referencia'}
           </span>
           <span className="text-slate-500">
-            Rango: {drip.rango.min}–{drip.rango.max} {drip.rango.unidad}
+            Borrador: {drip.rango.min}–{drip.rango.max} {drip.rango.unidad}
           </span>
         </div>
       )}

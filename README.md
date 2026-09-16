@@ -1,149 +1,72 @@
 # Copiloto UCO
 
-Calculadora clínica determinística para uso personal en unidad coronaria (UCO). PWA offline-first.
+Referencia profesional en desarrollo para UCO de adultos en Argentina. Diseñada para consultar en la cabecera y trasladar las decisiones del médico a sus indicaciones en papel.
 
-> ⚠️ **Herramienta de apoyo para uso profesional personal. No reemplaza el juicio clínico. Verificar toda dosis antes de indicar.**
+**App:** https://shiforobles.github.io/copiloto-uco/
 
-## Funcionalidades
+## Flujo principal
 
-- **Función renal:** Cockcroft-Gault + CKD-EPI 2021 (sin raza), con advertencias clínicas
-- **Goteos:** Conversión bidireccional mL/h ↔ γ (µg/kg/min) o µg/min, con diluciones editables
-- **Alertas de ajuste renal:** Base de reglas que marca ajustes de dosis por ClCr
-- **Checklist IC:** Pilares de insuficiencia cardíaca por fase clínica, con precauciones por signos vitales
+1. Cargar en **Paciente** edad, sexo, peso, talla, función renal, condición y fase clínica.
+2. Abrir una tarjeta de **Referencia terapéutica**. No se marcan tratamientos como administrados ni se ocultan por haberlos consultado.
+3. Completar los antecedentes y laboratorios que modifican la elección. “No informado” nunca equivale a un resultado negativo.
+4. Revisar alternativas, motivos, datos faltantes, contraindicaciones y controles.
+5. Consultar **Laboratorio y continuidad de cuidados**: diferencia evaluación actual, coordinación antes del alta y seguimiento ambulatorio.
 
-## Principios de seguridad
+### Cobertura actual
 
-1. **Ningún LLM calcula nada.** Todo es funciones puras + base de reglas JSON versionada
-2. **Cero datos identificatorios.** Sin nombre, DNI, HC. Sin backend, sin persistencia
-3. **Todo auditable.** Cada resultado muestra fórmula, valores usados y pasos intermedios
-4. **Toda regla clínica lleva fuente y fecha**, con flag `verified: false` hasta validación del médico
-5. **Tests primero.** 69 tests cubren todos los casos de respuesta conocida
+- 16 fichas de cuadros clínicos y 31 fichas de drogas, buscables por nombre o siglas.
+- Doble antiagregación contextual para SCA: PCI, fibrinólisis, manejo médico, cirugía, anticoagulación oral, edad, peso, función renal, sangrado, hemoglobina, plaquetas, ACV/AIT, hemorragia intracraneal, hepatopatía, interacciones y tratamiento previo.
+- Fichas de estatinas, ARNI/IECA/ARA II, betabloqueantes, ARM, iSGLT2, diuréticos y anticoagulación. La profundidad de personalización varía: no todas seleccionan una droga o calculan una dosis.
+- Controles e interconsultas con motivo explícito: Cardiología/rehabilitación, Nefrología, Hematología, evaluación hepática y Diabetología/Endocrinología cuando los hallazgos lo ameritan.
+- Calculadora bidireccional de infusiones con preparación real ingresada, 9 unidades de dosis, coma decimal, dimensionalidad validada y pasos auditables.
+- Cockcroft–Gault y CKD-EPI 2021. Se evita aplicar ecuaciones estables en LRA/diálisis y reglas adultas en menores.
+- Preparaciones de ejemplo y reglas renales heredadas, visibles como borradores; las diluciones requieren confirmación antes de mostrar un cálculo.
 
-## Stack
+## Alcance clínico
 
-- React 19 + TypeScript + Vite 8
-- Tailwind CSS v3 (dark mode, mobile-first)
-- Vitest 3 (pool: vmThreads — workaround para espacio en path del workspace)
-- vite-plugin-pwa (offline-first)
-- Deploy: GitHub Pages → `shiforobles.github.io/copiloto-uco/`
-- Estado: useReducer + Context (sin Zustand)
-- Sin backend, sin base de datos, sin analytics
+Las síntesis y reglas están **pendientes de validación clínica local**. No cubren toda la práctica de UCO ni aseguran la integridad del tratamiento o la aptitud de alta. Las pruebas automáticas verifican lógica y cálculos, no eficacia ni seguridad clínica.
 
-## Estructura de archivos
+Las fichas incluyen enlaces a guías y prospectos. Las referencias AEMPS, DailyMed, NICE y otras fuentes externas deben contrastarse con el prospecto autorizado en Argentina y el protocolo del servicio. La app no afirma disponibilidad comercial local.
 
-```
-src/
-├── engine/              # Funciones puras de cálculo (sin deps de UI)
-│   ├── types.ts         # CalculationResult, CalculationStep, inputs tipados
-│   ├── validation.ts    # Validación de inputs (peso, Cr, edad, etc.)
-│   ├── units.ts         # Helpers: mgToUg, calculateConcentration, formatNumber
-│   ├── renal.ts         # cockcroftGault(), ckdEpi2021()
-│   └── drips.ts         # mlhToGamma(), gammaToMlh(), mlhToUgMin(), ugMinToMlh()
-│
-├── rules/               # Tipos y evaluadores de reglas clínicas
-│   ├── types.ts         # Dilution, RenalRule, ChecklistItem, etc.
-│   ├── renal-rules.engine.ts  # evaluateRenalRule() — algoritmo corregido
-│   └── checklist.engine.ts    # evaluateChecklist() — condicional por fase
-│
-├── data/                # Datos seed (verified: false)
-│   ├── dilutions.ts     # 5 drogas: milrinona, dobutamina, NA, dopamina, NTG
-│   ├── renal-rules.ts   # 13 reglas para 12 drogas cardiológicas
-│   └── checklist-ic.ts  # 7 pilares IC por fase clínica
-│
-├── context/
-│   └── session.tsx      # SessionProvider + useReducer + tipos de estado
-│
-├── ui/                  # Componentes React
-│   ├── App.tsx          # Layout principal + header + nueva sesión
-│   ├── PatientForm.tsx  # Formulario: edad, sexo, peso, talla, Cr, K, TAS, FC, condición, FA, fase
-│   ├── RenalResults.tsx # Tarjetas CG + CKD-EPI con fórmulas desplegables
-│   ├── DripsPanel.tsx   # Panel de goteos (agregar, quitar)
-│   ├── DripCard.tsx     # Tarjeta de goteo individual (bidireccional, dilución editable)
-│   ├── RenalAlerts.tsx  # Alertas de ajuste por ClCr
-│   ├── Checklist.tsx    # Pilares faltantes según fase + condición
-│   ├── FormulaDetail.tsx # Componente <details> para fórmulas
-│   ├── StepDisplay.tsx  # Visualización de pasos de cálculo
-│   └── Disclaimer.tsx   # Footer con disclaimer legal
-│
-├── voice/               # Fase 2 (stub)
-│   └── input-provider.ts # InputProvider interface + formProvider
-│
-├── main.tsx             # Entry point React
-└── index.css            # Tailwind + design system (cards, buttons, badges)
+La antiagregación presenta alternativas de mantenimiento y solicita datos decisivos; no automatiza cargas, cambios de P2Y12 ni suspensión de un tratamiento previo. Las señales hemorrágicas son parciales: no representan un score ARC-HBR o PRECISE-DAPT completo ni certifican riesgo bajo. La talla no determina por sí sola una dosis antiagregante.
 
-tests/
-├── engine/
-│   ├── renal.test.ts    # 10 tests CG + CKD-EPI
-│   ├── drips.test.ts    # 9 tests goteos (ida/vuelta, bordes)
-│   └── validation.test.ts # 24 tests de validación de inputs
-└── rules/
-    ├── renal-rules.test.ts  # 12 tests (incl. test discriminante ClCr 10)
-    └── checklist.test.ts    # 14 tests (fase, FA, precauciones vitales)
-```
+## Privacidad y uso sin conexión
 
-## Decisiones técnicas clave
+- Sin nombres, DNI ni historia clínica. Sin backend, analítica, envío de datos clínicos ni almacenamiento persistente de la sesión.
+- Los datos quedan en memoria y se borran al recargar o iniciar **Nueva sesión**.
+- La PWA guarda los recursos de la app para su uso posterior sin conexión. Los enlaces a fuentes externas requieren internet.
+- Una nueva versión pide actualizar; la actualización recarga y borra la sesión actual. No aceptar una actualización en medio de una consulta que se necesite conservar.
 
-### Algoritmo del evaluador renal
-Filtra ajustes donde `clcr <= clcrMax` (umbrales que el paciente cruza), luego elige el de **menor** `clcrMax` (más restrictivo). Usa ClCr **sin redondear** para evitar cambios de bin por display.
+## Desarrollo
 
-### Datos como .ts en vez de .json
-Los seeds están en archivos `.ts` (objetos literales exportados) para tener tipado en compilación y autocompletado. Siguen siendo declarativos.
-
-### useReducer + Context
-Estado efímero de una sesión, sin persistencia. Un solo reducer maneja todo. Zustand no se justificaba.
-
-### Vitest pool: vmThreads
-El workspace tiene espacio en el nombre ("App UCO"). Vitest forks/threads workers no resuelven paths con espacios. `vmThreads` funciona correctamente.
-
-## Cómo correr
+React 19, TypeScript, Vite, Tailwind y Vitest. Node.js 24 en CI.
 
 ```bash
-npm install
-npm run dev          # Dev server
-npm test             # Tests (vitest run)
-npm run test:watch   # Tests en watch mode
-npm run build        # Build de producción
+npm ci
+npm run dev
+npm run typecheck
+npm test
+npm run build
+ENABLE_PWA=true npm run build
 ```
 
-## Cómo enchufar el proveedor de voz (fase 2)
+El sitio se sirve bajo `/copiloto-uco/`. `ENABLE_PWA=true` genera el service worker; el desarrollo habitual no registra uno.
 
-Ver `src/voice/input-provider.ts`. El flujo sería:
+Los íconos se regeneran sin dependencias adicionales con `node scripts/generate-icons.mjs`.
 
-1. Crear `voice-provider.ts` que implemente `InputProvider` con `type: 'voice'`
-2. Usar Web Speech API (`SpeechRecognition`) para capturar audio → texto
-3. Enviar texto a Claude API con prompt de parseo estricto:
-   - Entrada: texto libre dictado
-   - Salida: JSON con `Partial<SessionState>`
-   - Claude **SOLO parsea, NUNCA calcula**
-4. La UI muestra campos parseados para confirmación del médico
-5. El engine recalcula con valores confirmados (mismo flujo que formulario)
+## Organización
 
-## TODOs priorizados (para Claude Code)
+- `src/clinical/`: catálogo, fuentes, contexto del paciente, evaluación terapéutica y seguimiento.
+- `src/engine/`: funciones determinísticas de cálculo.
+- `src/context/session.tsx`: estado temporal compartido entre pantallas.
+- `src/ui/`: navegación, fichas, formularios y calculadoras.
+- `src/data/` y `src/rules/`: preparaciones, reglas renales y módulos heredados. Los antiguos checklists de datos no alimentan la referencia terapéutica actual.
+- `tests/`: casos de referencia, límites numéricos, ramas clínicas e integración de navegación y sesión; todos los casos son sintéticos.
 
-### P0 — Curación de datos (médico)
-- [ ] Revisar y marcar `verified: true` cada dilución en `data/dilutions.ts`
-- [ ] Revisar y completar fuentes en `data/renal-rules.ts` (campo `source`)
-- [ ] Revisar dosis de inicio/objetivo en `data/checklist-ic.ts`
-- [ ] Generar íconos PWA reales (192x192 y 512x512)
+## Publicación
 
-### P1 — Funcionalidad
-- [ ] Agregar más drogas vasoactivas (vasopresina, levosimendan, adrenalina)
-- [ ] Agregar más reglas renales (amiodarona, colchicina, alopurinol)
-- [ ] Peso ideal (Devine) + peso ajustado para CG en obesos
-- [ ] Selector de medicación actual para evaluar reglas renales automáticamente
-- [ ] Checklist para SCA (no solo IC)
+Un push a `main` ejecuta instalación, TypeScript, pruebas y build PWA antes de publicar en GitHub Pages. La versión desplegada se puede identificar en GitHub Actions.
 
-### P2 — Voz / IA
-- [ ] Implementar `voiceProvider` con Web Speech API
-- [ ] Parser vía Claude API (texto dictado → JSON de sesión)
-- [ ] UI de confirmación post-parseo
+## Próxima validación con el servicio
 
-### P3 — UX / Deploy
-- [ ] GitHub Actions para deploy automático a GH Pages
-- [ ] Animaciones de transición al cambiar fase/agregar goteo
-- [ ] Onboarding / tutorial de primer uso
-- [ ] Exportar resumen de sesión como texto (para copiar al parte)
-
-## Licencia
-
-Uso personal. No distribuir sin autorización.
+Revisar cada rama clínica con casos representativos, completar presentaciones locales, conciliación integral de medicación, protocolos de cambios de antitrombóticos, titulación, compatibilidades y cobertura de patologías aún ausentes. Mantener la fecha y procedencia de toda regla modificada.

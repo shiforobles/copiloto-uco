@@ -4,6 +4,7 @@ import { validateAge, validateWeight, validateCreatinine } from '../engine/valid
 import { formatNumber } from '../engine/units';
 import { FormulaDetail } from './FormulaDetail';
 import { StepDisplay } from './StepDisplay';
+import { renalBlockReason, hasRenalInputs } from '../clinical/patient';
 
 interface RenalResultsProps {
   state: SessionState;
@@ -11,10 +12,12 @@ interface RenalResultsProps {
 
 export function RenalResults({ state }: RenalResultsProps) {
   const { age, sex, weight, height, creatinine } = state;
+  const blocked = renalBlockReason(state);
+  if (blocked) return <section className="card-warning"><h2 className="section-title">Función renal</h2><p className="text-sm text-amber-200">{blocked}</p></section>;
 
   // Validar que tenemos los datos mínimos
-  const canCalculateCG =
-    age !== null &&
+  const canCalculateCG = hasRenalInputs(state) &&
+    age !== null && age >= 18 &&
     sex !== null &&
     weight !== null &&
     creatinine !== null &&
@@ -23,7 +26,7 @@ export function RenalResults({ state }: RenalResultsProps) {
     validateCreatinine(creatinine).valid;
 
   const canCalculateEPI =
-    age !== null &&
+    age !== null && age >= 18 &&
     sex !== null &&
     creatinine !== null &&
     validateAge(age).valid &&
@@ -73,7 +76,7 @@ export function RenalResults({ state }: RenalResultsProps) {
                     Cockcroft-Gault
                   </p>
                   <span className="badge-info text-[10px] px-1.5 py-0.5">
-                    ClCr de Dosificación Oficial
+                    Estimación de ClCr
                   </span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1.5">
@@ -107,7 +110,7 @@ export function RenalResults({ state }: RenalResultsProps) {
 
               {dosingResult.isAdjustedWeightUsed && (
                 <p className="text-[11px] text-amber-400/90 pt-1 border-t border-slate-800/40">
-                  ⚖️ Paciente obeso (peso real &gt; 1,2 × IBW). Se aplica peso ajustado para evitar sobredosificación.
+                  Peso real &gt; 1,2 × IBW: se usa peso ajustado según la regla de esta app. Confirmar el peso apropiado para la droga y el paciente.
                 </p>
               )}
             </div>
@@ -120,7 +123,7 @@ export function RenalResults({ state }: RenalResultsProps) {
             ))}
 
             <p className="mt-2 text-xs text-sky-400/80">
-              📌 Este valor gobierna automáticamente las alertas de ajuste y precauciones.
+              Estimación matemática. La ecuación y el peso apropiados dependen de la ficha de cada droga.
             </p>
 
             <FormulaDetail title="Ver fórmula y pasos completos">
@@ -162,6 +165,7 @@ export function RenalResults({ state }: RenalResultsProps) {
           </div>
         )}
       </div>
+      <p className="text-xs text-slate-400">Una estimación aislada no diagnostica enfermedad renal crónica. {state.renalStatus === 'unknown' && 'Falta confirmar estabilidad de creatinina.'} <a className="text-sky-300 underline" href="https://www.niddk.nih.gov/research-funding/research-programs/kidney-clinical-research-epidemiology/laboratory/factors-affecting-egfr-accuracy/clinical-measurements" target="_blank" rel="noreferrer">Limitaciones · NIDDK</a></p>
     </section>
   );
 }
@@ -180,9 +184,9 @@ function getClcrBadge(value: number): string {
 }
 
 function getClcrLabel(value: number): string {
-  if (value >= 90) return 'Normal';
+  if (value >= 90) return '≥90';
   if (value >= 60) return 'Leve ↓';
   if (value >= 30) return 'Moderada ↓';
   if (value >= 15) return 'Severa ↓';
-  return 'Fallo renal';
+  return '<15';
 }

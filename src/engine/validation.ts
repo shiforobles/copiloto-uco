@@ -5,7 +5,7 @@ import type { ValidationResult } from './types';
  * @param weight Peso en kg
  */
 export function validateWeight(weight: number): ValidationResult {
-  if (weight === null || weight === undefined || isNaN(weight)) {
+  if (weight === null || weight === undefined || !Number.isFinite(weight)) {
     return { valid: false, error: 'El peso es obligatorio' };
   }
   if (weight <= 0) {
@@ -22,7 +22,7 @@ export function validateWeight(weight: number): ValidationResult {
  * @param cr Creatinina sérica en mg/dL
  */
 export function validateCreatinine(cr: number): ValidationResult {
-  if (cr === null || cr === undefined || isNaN(cr)) {
+  if (cr === null || cr === undefined || !Number.isFinite(cr)) {
     return { valid: false, error: 'La creatinina es obligatoria' };
   }
   if (cr <= 0) {
@@ -39,7 +39,7 @@ export function validateCreatinine(cr: number): ValidationResult {
  * @param age Edad en años
  */
 export function validateAge(age: number): ValidationResult {
-  if (age === null || age === undefined || isNaN(age)) {
+  if (age === null || age === undefined || !Number.isFinite(age)) {
     return { valid: false, error: 'La edad es obligatoria' };
   }
   if (age < 0) {
@@ -59,7 +59,7 @@ export function validateAge(age: number): ValidationResult {
  * @param conc Concentración en µg/mL
  */
 export function validateConcentration(conc: number): ValidationResult {
-  if (conc === null || conc === undefined || isNaN(conc)) {
+  if (conc === null || conc === undefined || !Number.isFinite(conc)) {
     return { valid: false, error: 'La concentración es obligatoria' };
   }
   if (conc <= 0) {
@@ -73,7 +73,7 @@ export function validateConcentration(conc: number): ValidationResult {
  * @param rate Flujo en mL/h
  */
 export function validateRate(rate: number): ValidationResult {
-  if (rate === null || rate === undefined || isNaN(rate)) {
+  if (rate === null || rate === undefined || !Number.isFinite(rate)) {
     return { valid: false, error: 'El flujo es obligatorio' };
   }
   if (rate < 0) {
@@ -87,7 +87,7 @@ export function validateRate(rate: number): ValidationResult {
  * @param gamma Dosis en µg/kg/min o µg/min
  */
 export function validateGamma(gamma: number): ValidationResult {
-  if (gamma === null || gamma === undefined || isNaN(gamma)) {
+  if (gamma === null || gamma === undefined || !Number.isFinite(gamma)) {
     return { valid: false, error: 'La dosis es obligatoria' };
   }
   if (gamma < 0) {

@@ -4,6 +4,7 @@ import { validateAge, validateWeight, validateCreatinine } from '../engine/valid
 import { evaluateAllRenalRules } from '../rules/renal-rules.engine';
 import { renalRules } from '../data/renal-rules';
 import { formatNumber } from '../engine/units';
+import { dosingBlockReason } from '../clinical/patient';
 
 interface RenalAlertsProps {
   state: SessionState;
@@ -11,6 +12,8 @@ interface RenalAlertsProps {
 
 export function RenalAlerts({ state }: RenalAlertsProps) {
   const { age, sex, weight, height, creatinine, hasAF, activeRenalRuleIds } = state;
+  const blocked = dosingBlockReason(state);
+  if (blocked && activeRenalRuleIds.length > 0) return <div className="card-warning" role="status"><p className="text-sm text-amber-200">{blocked}</p></div>;
 
   // Need ClCr data to evaluate
   const canCalculate =

@@ -48,7 +48,7 @@ export const dilutions: Dilution[] = [
     concentracionUgMl: 1600, // 800 mg = 800000 µg / 500 mL = 1600 µg/mL
     modoDosis: 'ug_kg_min',
     rango: { min: 2, max: 20, unidad: 'µg/kg/min' },
-    notas: 'Dosis baja (< 3): efecto dopaminérgico. Dosis alta (> 10): efecto α predominante.',
+    notas: 'Elegir el esquema según indicación y respuesta. Ver ficha de bradicardia para el contexto ACLS.',
     verified: false,
   },
   {
@@ -82,7 +82,7 @@ export const dilutions: Dilution[] = [
     concentracionUPerMl: 0.4, // 40 U / 100 mL = 0.4 U/mL
     modoDosis: 'u_min',
     rango: { min: 0.01, max: 0.04, unidad: 'U/min' },
-    notas: 'No titular por TA. Dosis fija habitual: 0.03 U/min (4.5 mL/h a 0.4 U/mL). Asociar a noradrenalina.',
+    notas: 'La dosis y titulación dependen del contexto (shock séptico o poscardiotomía) y del protocolo. Ver ficha de vasopresina; no asumir una dosis fija universal.',
     verified: false,
   },
   {

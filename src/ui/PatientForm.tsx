@@ -19,7 +19,7 @@ export function PatientForm({ state, dispatch }: PatientFormProps) {
     }
     const num = parseFloat(raw);
     if (!isNaN(num)) {
-      setField(field, field === 'age' ? Math.floor(num) : num);
+      setField(field, num);
     }
   };
 
@@ -210,6 +210,25 @@ export function PatientForm({ state, dispatch }: PatientFormProps) {
         </button>
         {state.hasAF && <span className="text-xs text-sky-400">Sí</span>}
       </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 border-t border-slate-700 pt-4">
+        <div>
+          <label htmlFor="renal-status" className="label">Situación renal</label>
+          <select id="renal-status" className="select-field" value={state.renalStatus} onChange={e => setField('renalStatus', e.target.value)}>
+            <option value="unknown">Por confirmar</option>
+            <option value="stable">Creatinina estable</option>
+            <option value="unstable">Creatinina cambiante / LRA</option>
+            <option value="dialysis">Diálisis / reemplazo renal</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="input-lvef" className="label">FEVI (%) · opcional</label>
+          <input id="input-lvef" className="input-field" type="number" min="1" max="100" value={state.lvef ?? ''} onChange={e => handleNumber('lvef', e.target.value)} placeholder="No informada" />
+        </div>
+      </div>
+      <p className="mt-4 text-xs text-slate-400">Sesión temporal. Sin nombre ni historia clínica. Los datos se borran al recargar o iniciar una nueva sesión.</p>
+      {state.age !== null && (state.age < 18 || state.age > 120 || !Number.isInteger(state.age)) && <p role="alert" className="mt-3 text-sm text-amber-300">Ingresá una edad adulta válida (18–120 años enteros).</p>}
+      {state.height !== null && (state.height < 100 || state.height > 250) && <p role="alert" className="mt-3 text-sm text-amber-300">Revisá la talla: se espera un valor entre 100 y 250 cm.</p>}
+      {state.lvef !== null && (state.lvef <= 0 || state.lvef > 100) && <p role="alert" className="mt-3 text-sm text-amber-300">La FEVI debe estar entre 1 y 100%.</p>}
     </section>
   );
 }

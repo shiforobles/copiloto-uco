@@ -146,7 +146,7 @@ describe('Evaluador de checklist IC', () => {
       const arm = results.find((r) => r.item.id === 'arm');
       expect(arm).toBeDefined();
       expect(arm!.precautionWarnings.length).toBeGreaterThan(0);
-      expect(arm!.precautionWarnings[0]).toContain('K');
+      expect(arm!.precautionWarnings.some(w => w.includes('K 5.8'))).toBe(true);
     });
 
     it('TAS baja → warning en IECA', () => {
@@ -177,7 +177,7 @@ describe('Evaluador de checklist IC', () => {
       expect(bb!.precautionWarnings.some((w) => w.includes('FC'))).toBe(true);
     });
 
-    it('sin vitals → sin warnings de precaución', () => {
+    it('sin vitals → informa las precauciones que no se pueden evaluar', () => {
       const results = evaluateChecklist(
         'compensado',
         'ic',
@@ -185,7 +185,9 @@ describe('Evaluador de checklist IC', () => {
         [],
         checklistIC
       );
-      expect(results.every((r) => r.precautionWarnings.length === 0)).toBe(true);
+      const arm = results.find(r => r.item.id === 'arm')!;
+      expect(arm.precautionWarnings).toContain('Potasio no informado: precaución sin evaluar.');
+      expect(arm.precautionWarnings).toContain('Función renal no evaluable: precaución sin evaluar.');
     });
   });
 });

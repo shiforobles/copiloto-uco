@@ -81,10 +81,14 @@ function evaluatePrecautions(
     heartRate?: number;
   }
 ): string[] {
-  if (!vitals) return [];
+  vitals = vitals ?? {};
 
   const warnings: string[] = [];
   const prec = item.precauciones;
+  if ((prec.kMin !== undefined || prec.kMax !== undefined) && vitals.potassium === undefined) warnings.push('Potasio no informado: precaución sin evaluar.');
+  if (prec.clcrMin !== undefined && vitals.clcr === undefined) warnings.push('Función renal no evaluable: precaución sin evaluar.');
+  if (prec.tasMin !== undefined && vitals.systolicBP === undefined) warnings.push('TAS no informada: precaución sin evaluar.');
+  if (prec.fcMin !== undefined && vitals.heartRate === undefined) warnings.push('FC no informada: precaución sin evaluar.');
 
   if (prec.kMin !== undefined && vitals.potassium !== undefined) {
     if (vitals.potassium < prec.kMin) {

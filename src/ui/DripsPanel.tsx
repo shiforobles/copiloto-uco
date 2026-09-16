@@ -33,6 +33,7 @@ export function DripsPanel({ state, dispatch }: DripsPanelProps) {
       inputMode: 'mlh',
       mlPerHour: null,
       gamma: null,
+      dilutionConfirmed: false,
     };
 
     dispatch({ type: 'ADD_DRIP', drip: newDrip });
@@ -45,13 +46,14 @@ export function DripsPanel({ state, dispatch }: DripsPanelProps) {
     volumenML: number,
     isUnits: boolean
   ) => {
-    if (cantidad <= 0 || volumenML <= 0) return;
+    if (!Number.isFinite(cantidad) || !Number.isFinite(volumenML) || cantidad <= 0 || volumenML <= 0) return;
     if (isUnits) {
       const concU = cantidad / volumenML;
       dispatch({
         type: 'UPDATE_DRIP',
         id: dripId,
         updates: {
+          dilutionConfirmed: false,
           currentDilution: {
             units: cantidad,
             volumenML,
@@ -66,6 +68,7 @@ export function DripsPanel({ state, dispatch }: DripsPanelProps) {
         type: 'UPDATE_DRIP',
         id: dripId,
         updates: {
+          dilutionConfirmed: false,
           currentDilution: {
             mg: cantidad,
             volumenML,
