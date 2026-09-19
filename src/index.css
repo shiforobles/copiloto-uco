@@ -8,6 +8,41 @@
 .therapy-card:hover, .therapy-card:focus-visible { border-color: #5eead4; }
 .therapy-card .card, .therapy-card .card-warning { padding: .8rem; }
 
+/* DAPT: comparación completa en una pantalla de consulta, sin fichas separadas. */
+.dapt-quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
+.dapt-quick-grid .label { min-height: 2.3em; margin-bottom: .3rem; }
+.dapt-quick-grid .select-field { padding: .6rem .65rem; }
+.dapt-table { border: 1px solid #334155; border-radius: .9rem; overflow: hidden; }
+.dapt-row { display: grid; grid-template-columns: minmax(95px, .7fr) minmax(145px, 1fr) minmax(110px, .85fr) minmax(0, 2.3fr); gap: .8rem; padding: .9rem; border-top: 1px solid #334155; background: #111c2c; font-size: .8rem; line-height: 1.5; }
+.dapt-table-head .dapt-row { border-top: 0; background: #0b1524; color: #94a3b8; font-size: .7rem; }
+.dapt-drug { color: #f1f5f9; font-size: .9rem; }
+.dapt-dose strong { display: block; color: #e2e8f0; font-weight: 600; }
+.dapt-dose > span { display: block; margin-top: .35rem; color: #94a3b8; font-size: .7rem; }
+.dapt-status { display: inline-block; padding: .22rem .45rem; border: 1px solid #52647e; border-radius: .4rem; font-size: .7rem; line-height: 1.4; color: #cbd5e1; }
+.dapt-status-usual { color: #99f6e4; border-color: #347b74; background: #12302f; }
+.dapt-status-confirm { color: #fde68a; border-color: #826827; background: #2b2719; }
+.dapt-status-caution { color: #fed7aa; border-color: #9a672b; background: #322417; }
+.dapt-status-avoid { color: #fecdd3; border-color: #a94b61; background: #3a1e2a; }
+.dapt-row-avoid { border-left: 3px solid #d16d87; }
+.dapt-reason { color: #cbd5e1; }
+.dapt-reason p + p { margin-top: .4rem; }
+.dapt-avoid { color: #fecdd3; font-weight: 600; }
+.dapt-caution, .dapt-pending { color: #fde4ac; }
+.dapt-contra { color: #a8b7cc; font-size: .74rem; }
+.dapt-contra > span { color: #cbd5e1; }
+.dapt-current { display: block; width: fit-content; font-size: .68rem; margin-top: .4rem; padding: .08rem .4rem; border: 1px solid #537da6; border-radius: .3rem; color: #bae6fd; }
+@media (min-width: 1000px) { .dapt-quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px) {
+  .dapt-table { border: 0; border-radius: 0; overflow: visible; }
+  .dapt-table-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .dapt-row { grid-template-columns: minmax(85px, .6fr) minmax(0, 1.6fr); gap: .6rem; padding: .85rem; border: 1px solid #334155; border-radius: .8rem; margin-bottom: .65rem; }
+  .dapt-row-avoid { border-left: 3px solid #d16d87; }
+  .dapt-drug { grid-column: 1; grid-row: 1; }
+  .dapt-dose { grid-column: 2; grid-row: 1 / span 2; }
+  .dapt-state { grid-column: 1; grid-row: 2; }
+  .dapt-reason { grid-column: 1 / -1; }
+}
+
 @layer base {
   body {
     @apply bg-slate-950 text-slate-100 font-sans antialiased;

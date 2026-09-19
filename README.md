@@ -12,6 +12,16 @@ Referencia profesional en desarrollo para UCO de adultos en Argentina. Diseñada
 4. Revisar alternativas, motivos, datos faltantes, contraindicaciones y controles.
 5. Consultar **Laboratorio y continuidad de cuidados**: diferencia evaluación actual, coordinación antes del alta y seguimiento ambulatorio.
 
+### Doble antiagregación: consulta inmediata
+
+Desde **Paciente → Condición: SCA → Doble antiagregación**, la tabla muestra siempre AAS, ticagrelor, prasugrel y clopidogrel con mantenimiento, escenario, contraindicaciones y datos pendientes, aunque no haya otros datos cargados.
+
+**Decisión rápida** contiene seis campos: tipo de SCA, estrategia, sangrado activo, ACV/AIT, indicación de anticoagulación oral y P2Y12 actual. Con tipo y estrategia ya se ordenan las alternativas. Edad y peso se reutilizan desde Paciente. El resto se consulta en **Datos avanzados**, inicialmente cerrado. Fase clínica y estabilidad renal no son requisitos para mostrar la tabla; sus advertencias se conservan.
+
+Cada droga distingue opción habitual/alternativa, precaución, evitar/contraindicada o confirmar dato. Un antecedente positivo afecta a las filas correspondientes; un desconocido pide **Confirmar antes de indicar**. Ninguno elimina las otras referencias. Los datos se conservan al navegar durante la misma sesión.
+
+La presentación progresiva está separada del evaluador terapéutico existente, que mantiene sus reglas y pruebas. **Validación local pendiente**; las pruebas de interfaz no constituyen validación clínica.
+
 ### Cobertura actual
 
 - 16 fichas de cuadros clínicos y 31 fichas de drogas, buscables por nombre o siglas.

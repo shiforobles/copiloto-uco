@@ -10,7 +10,7 @@ const safetyQuestions = [
   ['p2y12Allergy', 'Alergia a algún P2Y12'], ['surgeryPlanned', 'Cirugía o procedimiento próximo'],
 ] as const;
 
-export function TherapyContextForm({ antiplateletsOnly = false }: { antiplateletsOnly?: boolean }) {
+export function TherapyContextForm({ antiplateletsOnly = false, daptSection }: { antiplateletsOnly?: boolean; daptSection?: 'quick' | 'advanced' }) {
   const { state, dispatch } = useSession();
   const set = (field: keyof TherapyContext, value: TherapyContext[keyof TherapyContext]) => dispatch({ type: 'SET_THERAPY_FIELD', field, value });
   const select = (field: keyof TherapyContext, label: string, choices: Choice[] = yesNo) => <div key={field}>
@@ -27,20 +27,30 @@ export function TherapyContextForm({ antiplateletsOnly = false }: { antiplatelet
       <p id={`hint-${field}`} className={`text-xs mt-1 ${invalid ? 'text-amber-300' : 'text-slate-500'}`}>{invalid ? `Revisá la unidad y el valor (${min}–${max}).` : hint}</p>
     </div>;
   };
+  if (daptSection === 'quick') return <div className="dapt-quick-grid">
+    {select('acsType', 'Tipo de SCA', [['unknown', 'No informado'], ['stemi', 'Con elevación del ST'], ['nstemi', 'Sin elevación del ST']])}
+    {select('strategy', 'Estrategia del SCA', [['unknown', 'No informada'], ['pci', 'PCI / angioplastia'], ['medical', 'Tratamiento médico sin PCI'], ['fibrinolysis', 'Fibrinólisis'], ['cabg', 'Cirugía coronaria']])}
+    {select('activeBleeding', 'Sangrado activo')}
+    {select('priorStroke', 'ACV o AIT previo')}
+    {select('oralAnticoagulation', 'Indicación de anticoagulación oral')}
+    {select('currentP2y12', 'P2Y12 que recibe actualmente', [['unknown', 'No conciliado'], ['none', 'Ninguno, confirmado'], ['clopidogrel', 'Clopidogrel'], ['ticagrelor', 'Ticagrelor'], ['prasugrel', 'Prasugrel']])}
+  </div>;
+  const advanced = daptSection === 'advanced';
   return <div className="space-y-6">
     <p className="text-sm text-slate-400">Se comparte con el paciente actual. Un dato no informado nunca se interpreta como “no”. Edad, peso, talla y creatinina se editan en <a href="#paciente" className="text-teal-300 underline">Paciente</a>.</p>
-    {(state.condition === 'sca' || antiplateletsOnly) && <fieldset><legend className="section-title">Contexto coronario</legend><div className="grid sm:grid-cols-2 gap-3">
+    {!advanced && (state.condition === 'sca' || antiplateletsOnly) && <fieldset><legend className="section-title">Contexto coronario</legend><div className="grid sm:grid-cols-2 gap-3">
       {select('acsType', 'Tipo de SCA', [['unknown', 'No informado'], ['stemi', 'Con elevación del ST'], ['nstemi', 'Sin elevación del ST']])}
       {select('strategy', 'Estrategia del SCA', [['unknown', 'No informada'], ['pci', 'PCI / angioplastia'], ['medical', 'Tratamiento médico sin PCI'], ['fibrinolysis', 'Fibrinólisis'], ['cabg', 'Cirugía coronaria']])}
       {number('monthsSinceAcs', 'Meses desde el SCA', 0, 240, '0 = evento actual; podés usar decimales.')}
       {select('currentP2y12', 'P2Y12 que recibe actualmente', [['unknown', 'No conciliado'], ['none', 'Ninguno, confirmado'], ['clopidogrel', 'Clopidogrel'], ['ticagrelor', 'Ticagrelor'], ['prasugrel', 'Prasugrel']])}
     </div></fieldset>}
     <fieldset><legend className="section-title">Antecedentes que cambian la elección</legend><div className="grid sm:grid-cols-2 gap-3">
-      {safetyQuestions.map(([field, label]) => select(field, label))}
+      {safetyQuestions.filter(([field]) => !advanced || !['activeBleeding', 'priorStroke', 'oralAnticoagulation'].includes(field)).map(([field, label]) => select(field, label))}
       {select('bleedingRisk', 'Riesgo hemorrágico valorado por el médico', [['unknown', 'No valorado'], ['not-high', 'Sin alto riesgo tras evaluación clínica'], ['high', 'Alto riesgo hemorrágico']])}
       {select('liver', 'Situación hepática', [['unknown', 'No evaluada'], ['none', 'Sin hepatopatía conocida tras revisión'], ['abnormal', 'Alterada / en estudio'], ['severe', 'Insuficiencia grave / cirrosis descompensada']])}
       {select('interactions', 'Interacciones tras conciliar medicación', [['unknown', 'No revisadas'], ['none', 'Sin interacción relevante identificada'], ['cyp3a', 'Interacción potente CYP3A'], ['omeprazole', 'Omeprazol / esomeprazol'], ['other', 'Otra interacción por resolver']])}
       {state.sex !== 'male' && select('pregnancy', 'Embarazo o lactancia', [['unknown', 'No informado'], ['no', 'No / no corresponde, confirmado'], ['yes', 'Sí']])}
+      {advanced && number('monthsSinceAcs', 'Meses desde el SCA', 0, 240, '0 = evento actual; contextualiza duración, no bloquea la referencia.')}
     </div><p className="text-xs text-slate-500 mt-3">Las señales detectadas pueden requerir individualizar aunque se haya declarado “sin alto riesgo”.</p></fieldset>
     <fieldset><legend className="section-title">Laboratorio para esta decisión</legend><div className="grid sm:grid-cols-2 gap-3">
       {select('labsCurrent', 'Laboratorio vigente para esta decisión')}
