@@ -13,6 +13,7 @@ import { drugs } from '../clinical/drugs';
 import { searchEntries } from '../clinical/search';
 import { TreatmentPage, FollowUpPanel } from './TreatmentPage';
 import { TherapyContextForm } from './TherapyContextForm';
+import { ScaIntegralPage } from './ScaIntegralPage';
 
 const navigation = [
   { id: 'inicio', label: 'Inicio', symbol: '⌂' },
@@ -21,10 +22,10 @@ const navigation = [
   { id: 'infusiones', label: 'Infusiones', symbol: '⇄' },
   { id: 'paciente', label: 'Paciente', symbol: '◎' },
 ] as const;
-type View = typeof navigation[number]['id'] | 'tratamiento';
+type View = typeof navigation[number]['id'] | 'tratamiento' | 'sca-integral';
 function readRoute(): { view: View; id?: string } {
   const [view, id] = window.location.hash.slice(1).split('/');
-  return { view: view === 'tratamiento' || navigation.some(n => n.id === view) ? view as View : 'inicio', id };
+  return { view: view === 'tratamiento' || view === 'sca-integral' || navigation.some(n => n.id === view) ? view as View : 'inicio', id };
 }
 
 function Home() {
@@ -74,11 +75,11 @@ function SessionScreen() {
     <aside className="desktop-sidebar">
       <a href="#inicio" className="brand"><span className="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M2 12h5l3-7 4 14 3-7h5" /></svg></span><span>Copiloto <b className="text-teal-300">UCO</b></span></a>
       <p className="text-xs text-slate-500 mt-3 px-1">Tu espacio de trabajo clínico</p>
-      <nav className="mt-10 space-y-2" aria-label="Navegación principal">{navigation.map(item => <a key={item.id} href={item.id === 'infusiones' && infusionDrug ? `#infusiones/${infusionDrug}` : `#${item.id}`} aria-current={(route.view === 'tratamiento' ? 'paciente' : route.view) === item.id ? 'page' : undefined} className={`nav-item ${(route.view === 'tratamiento' ? 'paciente' : route.view) === item.id ? 'active' : ''}`}><span aria-hidden="true" className="text-xl w-6">{item.symbol}</span>{item.label}</a>)}</nav>
+      <nav className="mt-10 space-y-2" aria-label="Navegación principal">{navigation.map(item => <a key={item.id} href={item.id === 'infusiones' && infusionDrug ? `#infusiones/${infusionDrug}` : `#${item.id}`} aria-current={((route.view === 'tratamiento' || route.view === 'sca-integral') ? 'paciente' : route.view) === item.id ? 'page' : undefined} className={`nav-item ${((route.view === 'tratamiento' || route.view === 'sca-integral') ? 'paciente' : route.view) === item.id ? 'active' : ''}`}><span aria-hidden="true" className="text-xl w-6">{item.symbol}</span>{item.label}</a>)}</nav>
       <div className="mt-auto pt-12"><div className="text-xs text-slate-400 leading-relaxed border-t border-slate-800 pt-5">Adultos · Argentina<br />Biblioteca consultada 14–15/09/2026</div><span className="mt-3 inline-flex text-xs text-amber-200">Validación local pendiente</span></div>
     </aside>
     <div className="app-workspace">
-      <header className="workspace-header"><a href="#inicio" className="font-semibold text-slate-200 md:hidden">Copiloto <span className="text-teal-300">UCO</span></a><span className="hidden md:block text-sm text-slate-400">Cabecera / <span className="text-slate-100">{route.view === 'tratamiento' ? 'Referencia terapéutica' : navigation.find(n => n.id === route.view)?.label}</span></span><div className="flex items-center gap-4"><span className="text-xs text-slate-400 hidden sm:block">{online ? '● Con conexión' : '● Sin conexión'}</span><button id="btn-new-session" onClick={newSession} className="new-session">Nueva sesión <span aria-hidden="true">↺</span></button></div></header>
+      <header className="workspace-header"><a href="#inicio" className="font-semibold text-slate-200 md:hidden">Copiloto <span className="text-teal-300">UCO</span></a><span className="hidden md:block text-sm text-slate-400">Cabecera / <span className="text-slate-100">{route.view === 'sca-integral' ? 'SCA — tratamiento integral' : route.view === 'tratamiento' ? 'Referencia terapéutica' : navigation.find(n => n.id === route.view)?.label}</span></span><div className="flex items-center gap-4"><span className="text-xs text-slate-400 hidden sm:block">{online ? '● Con conexión' : '● Sin conexión'}</span><button id="btn-new-session" onClick={newSession} className="new-session">Nueva sesión <span aria-hidden="true">↺</span></button></div></header>
       <div className="workspace-body">
         <a href="#paciente" className="patient-strip" aria-label="Editar datos de la sesión"><div className="flex gap-2 items-center"><span className="text-teal-300" aria-hidden="true">◎</span><strong className="text-sm">Paciente actual</strong></div><div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-400"><span>Edad <b>{state.age ?? '—'}</b></span><span>Peso <b>{state.weight ?? '—'} kg</b></span><span>Cr <b>{state.creatinine ?? '—'} mg/dL</b></span><span>TAS <b>{state.systolicBP ?? '—'}</b></span></div><span className="text-xs text-teal-300">Editar →</span></a>
         <main id="main-content" tabIndex={-1} className="outline-none" key={sessionVersion}>
@@ -86,6 +87,7 @@ function SessionScreen() {
           {route.view === 'cuadros' && <ClinicalLibrary kind="cuadros" selectedId={route.id} />}
           {route.view === 'drogas' && <ClinicalLibrary kind="drogas" selectedId={route.id} />}
           {route.view === 'tratamiento' && <TreatmentPage key={route.id} id={route.id} />}
+          {route.view === 'sca-integral' && <ScaIntegralPage />}
           <div hidden={route.view !== 'infusiones'} className="space-y-6">
             <div><span className="eyebrow">Cálculos auditables</span><h1 className="page-title mt-2">Infusiones</h1><p className="page-subtitle">Preparación explícita. Unidades claras. Conversión en ambos sentidos.</p></div>
             <InfusionCalculator key={infusionDrug ?? 'custom'} drugId={infusionDrug} />
@@ -96,7 +98,7 @@ function SessionScreen() {
         <footer className="mt-10 border-t border-slate-800 pt-5 text-xs text-slate-500 leading-relaxed">Apoyo profesional en desarrollo. Verificar dosis, presentación y contexto antes de indicar. Las fichas no sustituyen el protocolo del servicio ni el juicio clínico.</footer>
       </div>
     </div>
-    <nav className="mobile-nav" aria-label="Navegación móvil">{navigation.map(item => <a key={item.id} href={item.id === 'infusiones' && infusionDrug ? `#infusiones/${infusionDrug}` : `#${item.id}`} aria-current={(route.view === 'tratamiento' ? 'paciente' : route.view) === item.id ? 'page' : undefined} className={(route.view === 'tratamiento' ? 'paciente' : route.view) === item.id ? 'active' : ''}><span aria-hidden="true">{item.symbol}</span>{item.label}</a>)}</nav>
+    <nav className="mobile-nav" aria-label="Navegación móvil">{navigation.map(item => <a key={item.id} href={item.id === 'infusiones' && infusionDrug ? `#infusiones/${infusionDrug}` : `#${item.id}`} aria-current={((route.view === 'tratamiento' || route.view === 'sca-integral') ? 'paciente' : route.view) === item.id ? 'page' : undefined} className={((route.view === 'tratamiento' || route.view === 'sca-integral') ? 'paciente' : route.view) === item.id ? 'active' : ''}><span aria-hidden="true">{item.symbol}</span>{item.label}</a>)}</nav>
   </div>;
 }
 

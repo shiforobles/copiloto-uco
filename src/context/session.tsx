@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, type ReactNode } from 'react';
 import type { ClinicalPhase, MainCondition, Dilution } from '../rules/types';
 import type { Sex } from '../engine/types';
 import { initialTherapy, type TherapyContext } from '../clinical/therapy-context';
+import { initialSca, type ScaContext } from '../clinical/sca-context';
 
 /** Goteo activo en la sesión */
 export interface ActiveDrip {
@@ -44,6 +45,7 @@ export interface SessionState {
   renalStatus: 'unknown' | 'stable' | 'unstable' | 'dialysis';
   lvef: number | null;
   therapy: TherapyContext;
+  sca: ScaContext;
 
   // Goteos activos
   drips: ActiveDrip[];
@@ -71,6 +73,7 @@ export const initialState: SessionState = {
   renalStatus: 'unknown',
   lvef: null,
   therapy: { ...initialTherapy },
+  sca: { ...initialSca },
   drips: [],
   coveredPillars: [],
   pathwayChecks: {},
@@ -78,6 +81,7 @@ export const initialState: SessionState = {
 };
 
 export type SessionAction =
+  | { type: 'SET_SCA_FIELD'; field: keyof ScaContext; value: ScaContext[keyof ScaContext] }
   | { type: 'SET_THERAPY_FIELD'; field: keyof TherapyContext; value: TherapyContext[keyof TherapyContext] }
   | { type: 'SET_PATIENT_FIELD'; field: keyof SessionState; value: unknown }
   | { type: 'ADD_DRIP'; drip: ActiveDrip }
@@ -91,6 +95,8 @@ export type SessionAction =
 
 export function sessionReducer(state: SessionState, action: SessionAction): SessionState {
   switch (action.type) {
+    case 'SET_SCA_FIELD':
+      return { ...state, sca: { ...state.sca, [action.field]: action.value } };
     case 'SET_THERAPY_FIELD':
       return { ...state, therapy: { ...state.therapy, [action.field]: action.value } };
     case 'TOGGLE_PATHWAY_CHECK': {
@@ -141,7 +147,7 @@ export function sessionReducer(state: SessionState, action: SessionAction): Sess
       };
 
     case 'RESET_SESSION':
-      return { ...initialState, therapy: { ...initialTherapy } };
+      return { ...initialState, therapy: { ...initialTherapy }, sca: { ...initialSca } };
 
     default:
       return state;
